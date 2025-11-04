@@ -15,7 +15,8 @@ export const interests: Interest[] = [
   },
   {
     title: 'Photography',
-    description: 'I enjoy taking photos of nature, travel and my pets.'
+    description: 'I enjoy taking photos of nature, travel and my pets.',
+    link: '/photography'
   }
 ]
 

@@ -36,8 +36,8 @@ export const experiences: Experience[] = [
     id: 'exp-3',
     company: 'Slalom Consulting',
     position: 'Salesforce Consultant',
-    startDate: '03/2021',
-    endDate: '04/2022',
+    startDate: '09/2020',
+    endDate: '06/2019',
     description: 'Built consulting expertise and technical versatility in multi-org environments, gaining exposure to different enterprise code base practices and secure deployment processes.',
     achievements: [
       'Directed Salesforce projects though execution of consulting approach and onsite visits',

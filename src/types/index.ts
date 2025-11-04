@@ -31,5 +31,13 @@ export interface Interest {
   title: string
   description: string
   icon?: string
+  link?: string
+}
+
+export interface Photo {
+  id: string
+  title: string
+  image: string
+  tags: string[]
 }
 
