@@ -11,7 +11,7 @@ export const interests: Interest[] = [
   },
   {
     title: 'Gaming',
-    description: 'Enjoying a variety of games and exploring game development.' + '<br />' + '<br />' + 'My favorites from 2025 were Expedition 33, Baldur\'s Gate 3, The Last of Us Part 2, Hollow Knight: Silksong and Hades 2.'
+    description: 'Enjoying a variety of games and exploring game development.' + '<br />' + '<br />' + 'My favorites from 2025 were Expedition 33, Baldur\'s Gate 3, The Last of Us Part 2, Hollow Knight: Silksong, Hades 2 and Nightreign.'
   },
   {
     title: 'Photography',
