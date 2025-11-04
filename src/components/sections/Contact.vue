@@ -58,14 +58,14 @@ const handleSubmit = async (e: Event) => {
                 <MapPin class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1" />
                 <div>
                   <p class="font-medium text-gray-900 dark:text-white">Location</p>
-                  <p class="text-gray-600 dark:text-gray-400">Remote / Available Worldwide</p>
+                  <p class="text-gray-600 dark:text-gray-400">Denver / Available remote worldwide</p>
                 </div>
               </div>
               <div class="flex items-start gap-3">
                 <Calendar class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1" />
                 <div>
                   <p class="font-medium text-gray-900 dark:text-white">Availability</p>
-                  <p class="text-gray-600 dark:text-gray-400">Open to new opportunities</p>
+                  <p class="text-gray-600 dark:text-gray-400">Actively seeking fulltime opportunities</p>
                 </div>
               </div>
             </div>

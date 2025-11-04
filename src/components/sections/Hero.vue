@@ -21,7 +21,7 @@ const scrollToSection = (id: string) => {
     <div class="container-custom">
       <div class="text-center max-w-3xl mx-auto">
         <h1 class="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-          Hi, I'm <span class="text-blue-600 dark:text-blue-400">Sampson Miller</span>
+          <span class="text-blue-600 dark:text-blue-400">Sampson Miller</span>
         </h1>
         <h2 class="text-2xl md:text-3xl text-gray-700 dark:text-gray-300 mb-6">
           Full Stack Developer
