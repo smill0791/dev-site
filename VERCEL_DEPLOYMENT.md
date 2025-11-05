@@ -123,41 +123,6 @@ After redeploying, check:
    - In Vercel, click **Redeploy** to clear build cache
    - Or add a commit to trigger a fresh deployment
 
-### Images Not Loading on Mobile
-
-If images load on desktop but not on mobile devices:
-
-1. **Check CORS Configuration in Supabase**
-   - Go to Supabase Dashboard → **Storage** → **Settings**
-   - Click on **CORS Configuration**
-   - Add your Vercel domain (e.g., `https://your-domain.vercel.app`)
-   - Allow **GET** and **HEAD** methods
-   - Allow headers: `Origin`, `X-Requested-With`, `Content-Type`, `Accept`
-   - Save the configuration
-   - Redeploy your Vercel application
-
-2. **Check Browser Console on Mobile**
-   - Open browser DevTools on mobile device (or use remote debugging)
-   - Check Console tab for CORS errors
-   - Look for errors like "Access to image at ... has been blocked by CORS policy"
-   - Check Network tab to see if image requests are failing
-
-3. **Verify Image URLs**
-   - Check that Supabase storage bucket is public
-   - Verify image paths in database match storage paths
-   - Test image URLs directly in mobile browser
-
-4. **Check Network Issues**
-   - Mobile networks may have different restrictions
-   - Test on different mobile networks (WiFi vs cellular)
-   - Check if images are too large for mobile networks
-   - Consider optimizing images before upload
-
-5. **Image Error Handling**
-   - The application now includes automatic retry logic (up to 3 retries)
-   - Failed images will show an error message with a retry button
-   - Check browser console for detailed error messages
-
 ### Build Errors
 
 If you see build errors:
