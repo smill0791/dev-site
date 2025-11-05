@@ -120,12 +120,27 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
           class="relative group cursor-pointer overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow"
           @click="openLightbox(photo.id)"
         >
-          <img
-            :src="getPhotoUrl(photo.thumbnail_path || photo.file_path)"
-            :alt="photo.title"
-            class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
-            loading="lazy"
-          />
+          <picture>
+            <!-- Use thumbnail on mobile/tablet (up to 1024px) if thumbnail exists -->
+            <source
+              v-if="photo.thumbnail_path"
+              media="(max-width: 1024px)"
+              :srcset="getPhotoUrl(photo.thumbnail_path)"
+            />
+            <!-- Use full image on desktop (above 1024px) if thumbnail exists, or always if no thumbnail -->
+            <source
+              v-if="photo.thumbnail_path"
+              media="(min-width: 1025px)"
+              :srcset="getPhotoUrl(photo.file_path)"
+            />
+            <!-- Fallback image - always rendered, but only used if no matching source -->
+            <img
+              :src="getPhotoUrl(photo.thumbnail_path || photo.file_path)"
+              :alt="photo.title"
+              class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
+            />
+          </picture>
           <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
             <Maximize2 class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
