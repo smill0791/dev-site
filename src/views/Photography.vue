@@ -79,7 +79,15 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
       <div v-if="error" class="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">
         <p class="font-medium">Error loading photos</p>
         <p class="text-sm mt-1">{{ error }}</p>
-        <p class="text-sm mt-2">Please check your Supabase configuration in .env.local</p>
+        <p class="text-sm mt-2">
+          <span v-if="error.includes('not configured')">
+            For local development: Add environment variables to <code class="bg-red-200 dark:bg-red-900 px-1 rounded">.env.local</code><br>
+            For Vercel deployment: Add environment variables in Vercel Dashboard → Settings → Environment Variables
+          </span>
+          <span v-else>
+            Please check your Supabase configuration. See <code class="bg-red-200 dark:bg-red-900 px-1 rounded">VERCEL_DEPLOYMENT.md</code> for deployment instructions.
+          </span>
+        </p>
       </div>
 
       <!-- Loading state -->

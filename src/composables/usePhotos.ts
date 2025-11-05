@@ -30,6 +30,17 @@ export function usePhotos() {
     loading.value = true
     error.value = null
 
+    // Check if Supabase is configured
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      error.value = 'Supabase environment variables are not configured. Please check your deployment settings.'
+      loading.value = false
+      console.error('Supabase not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to environment variables.')
+      return
+    }
+
     try {
       let query = supabase
         .from('photos')

@@ -86,11 +86,27 @@ Update the content in `src/data/` files:
 - `interests.ts` - Your interests
 - `tags.ts` - Photo tags (Nature, Travel, Pets, Italy, Parks, Sunset)
 
+## Deployment
+
+### Vercel Deployment
+
+For Vercel deployment, you need to configure environment variables:
+
+1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+2. Add these variables:
+   - `VITE_SUPABASE_URL` - Your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` - Your Supabase anon key
+3. Set them for all environments (Production, Preview, Development)
+4. Redeploy your application
+
+See `VERCEL_DEPLOYMENT.md` for detailed instructions.
+
 ## Documentation
 
 - `PROJECT_SUMMARY.md` - Complete project summary and architecture
 - `PROJECT_RULES.md` - Quick reference guide and coding standards
 - `SUPABASE_SETUP.md` - Detailed Supabase setup instructions
+- `VERCEL_DEPLOYMENT.md` - Vercel deployment and environment variable setup
 - `vue-portfolio-design.md` - Original design document
 
 ## License
