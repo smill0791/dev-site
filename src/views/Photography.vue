@@ -2,14 +2,43 @@
 import { ref, computed, onMounted } from 'vue'
 import { useHead } from '@vueuse/head'
 import { useRouter } from 'vue-router'
+import { useMediaQuery } from '@vueuse/core'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import { usePhotos } from '@/composables/usePhotos'
 import { ArrowLeft, Maximize2 } from 'lucide-vue-next'
+import type { Photo } from '@/types'
 
 const router = useRouter()
 const { photos, loading, error, allTags, fetchPhotos, getPhotoUrl, loadMore } = usePhotos()
 const selectedTag = ref<string>('All')
 const selectedPhoto = ref<string | null>(null)
+
+// Detect if we're on mobile/tablet (up to 1024px)
+const isMobile = useMediaQuery('(max-width: 1024px)')
+
+// Helper function to get the appropriate image URL for a photo
+const getImageUrl = (photo: Photo) => {
+  // On mobile, prefer thumbnail if available
+  if (isMobile.value && photo.thumbnail_path) {
+    return getPhotoUrl(photo.thumbnail_path)
+  }
+  // Otherwise use full image
+  return getPhotoUrl(photo.file_path)
+}
+
+// Handle image load errors - fallback to full image if thumbnail fails
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  const photo = filteredPhotos.value.find(p => {
+    const currentUrl = getImageUrl(p)
+    return img.src === currentUrl || img.src.includes(p.thumbnail_path || '')
+  })
+  
+  if (photo && photo.thumbnail_path && img.src.includes(photo.thumbnail_path)) {
+    // If thumbnail failed, try full image
+    img.src = getPhotoUrl(photo.file_path)
+  }
+}
 
 useHead({
   title: 'Photography - Sampson Miller'
@@ -120,27 +149,14 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
           class="relative group cursor-pointer overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow"
           @click="openLightbox(photo.id)"
         >
-          <picture>
-            <!-- Use thumbnail on mobile/tablet (up to 1024px) if thumbnail exists -->
-            <source
-              v-if="photo.thumbnail_path"
-              media="(max-width: 1024px)"
-              :srcset="getPhotoUrl(photo.thumbnail_path)"
-            />
-            <!-- Use full image on desktop (above 1024px) if thumbnail exists, or always if no thumbnail -->
-            <source
-              v-if="photo.thumbnail_path"
-              media="(min-width: 1025px)"
-              :srcset="getPhotoUrl(photo.file_path)"
-            />
-            <!-- Fallback image - always rendered, but only used if no matching source -->
-            <img
-              :src="getPhotoUrl(photo.thumbnail_path || photo.file_path)"
-              :alt="photo.title"
-              class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
-              loading="lazy"
-            />
-          </picture>
+          <img
+            :key="`${photo.id}-${isMobile}`"
+            :src="getImageUrl(photo)"
+            :alt="photo.title"
+            class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+            loading="lazy"
+            @error="handleImageError"
+          />
           <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
             <Maximize2 class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
