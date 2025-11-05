@@ -10,6 +10,9 @@ export function usePhotos() {
   const currentPage = ref(1)
   const pageSize = 12
   const hasMore = ref(true)
+  const imageErrors = ref<Set<string>>(new Set())
+  const imageRetries = ref<Map<string, number>>(new Map())
+  const maxRetries = 3
 
   // Get photo URL from Supabase storage
   // Note: Supabase Storage doesn't support transform options in getPublicUrl
@@ -18,11 +21,54 @@ export function usePhotos() {
   const getPhotoUrl = (path: string) => {
     if (!path) return ''
     
-    const { data } = supabase.storage
-      .from('photos')
-      .getPublicUrl(path)
+    try {
+      const { data } = supabase.storage
+        .from('photos')
+        .getPublicUrl(path)
+      
+      return data.publicUrl
+    } catch (e) {
+      console.error('Error getting photo URL:', e)
+      return ''
+    }
+  }
+
+  // Handle image load error
+  const handleImageError = (photoId: string, imagePath: string) => {
+    const retryCount = imageRetries.value.get(photoId) || 0
     
-    return data.publicUrl
+    if (retryCount < maxRetries) {
+      // Retry loading the image
+      imageRetries.value.set(photoId, retryCount + 1)
+      console.warn(`Image load failed for photo ${photoId} (${imagePath}), retry ${retryCount + 1}/${maxRetries}`)
+      
+      // Force image reload by clearing and resetting
+      setTimeout(() => {
+        const photo = photos.value.find(p => p.id === photoId)
+        if (photo) {
+          // Trigger a re-render by updating the photo
+          const index = photos.value.findIndex(p => p.id === photoId)
+          if (index !== -1) {
+            photos.value[index] = { ...photo }
+          }
+        }
+      }, 1000 * (retryCount + 1)) // Exponential backoff
+    } else {
+      // Max retries reached, mark as failed
+      imageErrors.value.add(photoId)
+      console.error(`Image load failed for photo ${photoId} (${imagePath}) after ${maxRetries} retries`)
+    }
+  }
+
+  // Check if image has failed to load
+  const hasImageError = (photoId: string) => {
+    return imageErrors.value.has(photoId)
+  }
+
+  // Clear image error state
+  const clearImageError = (photoId: string) => {
+    imageErrors.value.delete(photoId)
+    imageRetries.value.delete(photoId)
   }
 
   // Fetch photos with optional filters
@@ -69,6 +115,9 @@ export function usePhotos() {
 
       if (page === 1) {
         photos.value = (data || []) as Photo[]
+        // Clear error states for new photos
+        imageErrors.value.clear()
+        imageRetries.value.clear()
       } else {
         photos.value = [...photos.value, ...((data || []) as Photo[])]
       }
@@ -165,6 +214,9 @@ export function usePhotos() {
     fetchPhotos,
     getPhoto,
     getPhotoUrl,
-    loadMore
+    loadMore,
+    handleImageError,
+    hasImageError,
+    clearImageError
   }
 }

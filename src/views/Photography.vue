@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useHead } from '@vueuse/head'
 import { useRouter } from 'vue-router'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
@@ -7,12 +7,18 @@ import { usePhotos } from '@/composables/usePhotos'
 import { ArrowLeft, Maximize2 } from 'lucide-vue-next'
 
 const router = useRouter()
-const { photos, loading, error, allTags, fetchPhotos, getPhotoUrl, loadMore } = usePhotos()
+const { photos, loading, error, allTags, fetchPhotos, getPhotoUrl, loadMore, handleImageError, hasImageError, clearImageError } = usePhotos()
 const selectedTag = ref<string>('All')
 const selectedPhoto = ref<string | null>(null)
+const imageLoadingStates = ref<Map<string, boolean>>(new Map())
 
 useHead({
   title: 'Photography - Sampson Miller'
+})
+
+// Clear loading states when photos are fetched
+watch(() => photos.value.length, () => {
+  imageLoadingStates.value.clear()
 })
 
 onMounted(() => {
@@ -59,6 +65,20 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
   } else if (direction === 'next' && currentIndex < filteredPhotos.value.length - 1) {
     selectedPhoto.value = filteredPhotos.value[currentIndex + 1].id
   }
+}
+
+const onImageLoad = (photoId: string) => {
+  imageLoadingStates.value.set(photoId, false)
+  clearImageError(photoId)
+}
+
+const onImageError = (photoId: string, imagePath: string) => {
+  imageLoadingStates.value.set(photoId, false)
+  handleImageError(photoId, imagePath)
+}
+
+const onImageLoadStart = (photoId: string) => {
+  imageLoadingStates.value.set(photoId, true)
 }
 </script>
 
@@ -113,20 +133,53 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
       </div>
       
       <!-- Photo grid -->
-      <div v-if="!loading || photos.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <!-- CSS THUMBNAIL FIX: Added photo-grid class for temporary mobile fix -->
+      <div v-if="!loading || photos.length > 0" class="photo-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div
           v-for="photo in filteredPhotos"
           :key="photo.id"
-          class="relative group cursor-pointer overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+          class="relative group cursor-pointer overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow bg-gray-100 dark:bg-slate-800"
           @click="openLightbox(photo.id)"
         >
+          <!-- Loading state -->
+          <div
+            v-if="imageLoadingStates.get(photo.id)"
+            class="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-slate-800"
+          >
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+          </div>
+          
+          <!-- Error state -->
+          <div
+            v-else-if="hasImageError(photo.id)"
+            class="w-full h-64 flex flex-col items-center justify-center bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 p-4"
+          >
+            <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p class="text-xs text-center">Failed to load image</p>
+            <button
+              @click.stop="() => { clearImageError(photo.id); onImageLoadStart(photo.id); }"
+              class="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+          
+          <!-- Image -->
           <img
+            v-else
             :src="getPhotoUrl(photo.thumbnail_path || photo.file_path)"
             :alt="photo.title"
             class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
             loading="lazy"
+            crossorigin="anonymous"
+            @load="onImageLoad(photo.id)"
+            @error="onImageError(photo.id, photo.thumbnail_path || photo.file_path)"
+            @loadstart="onImageLoadStart(photo.id)"
           />
-          <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
+          
+          <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center pointer-events-none">
             <Maximize2 class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
@@ -198,18 +251,49 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
         </button>
 
         <div class="max-w-7xl max-h-full">
+          <!-- Loading state -->
+          <div
+            v-if="currentPhoto && imageLoadingStates.get(currentPhoto.id)"
+            class="flex items-center justify-center min-h-[60vh]"
+          >
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+          </div>
+          
+          <!-- Error state -->
+          <div
+            v-else-if="currentPhoto && hasImageError(currentPhoto.id)"
+            class="flex flex-col items-center justify-center min-h-[60vh] text-white"
+          >
+            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p class="text-lg mb-4">Failed to load image</p>
+            <button
+              @click="() => { if (currentPhoto) { clearImageError(currentPhoto.id); onImageLoadStart(currentPhoto.id); } }"
+              class="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+          
+          <!-- Image -->
           <img
-            v-if="currentPhoto"
+            v-else-if="currentPhoto"
             :src="getPhotoUrl(currentPhoto.file_path)"
             :alt="currentPhoto.title"
             class="max-w-full max-h-[90vh] object-contain"
+            crossorigin="anonymous"
+            @load="onImageLoad(currentPhoto.id)"
+            @error="onImageError(currentPhoto.id, currentPhoto.file_path)"
+            @loadstart="onImageLoadStart(currentPhoto.id)"
           />
-          <div class="mt-4 text-center text-white">
-            <h3 class="text-xl font-semibold">{{ currentPhoto?.title }}</h3>
-            <p v-if="currentPhoto?.description" class="mt-2 text-gray-300 text-sm">
+          
+          <div v-if="currentPhoto" class="mt-4 text-center text-white">
+            <h3 class="text-xl font-semibold">{{ currentPhoto.title }}</h3>
+            <p v-if="currentPhoto.description" class="mt-2 text-gray-300 text-sm">
               {{ currentPhoto.description }}
             </p>
-            <div v-if="currentPhoto?.tags && currentPhoto.tags.length > 0" class="flex flex-wrap justify-center gap-2 mt-2">
+            <div v-if="currentPhoto.tags && currentPhoto.tags.length > 0" class="flex flex-wrap justify-center gap-2 mt-2">
               <span
                 v-for="tag in currentPhoto.tags"
                 :key="tag"
@@ -227,4 +311,35 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
 
 <style scoped>
 /* Prevent body scroll when lightbox is open */
+
+/* ============================================
+   CSS THUMBNAIL FIX - TEMPORARY MOBILE FIX
+   TODO: Remove this fix once proper image thumbnails are implemented
+   This fix forces images to resize properly on mobile devices
+   ============================================ */
+@media (max-width: 640px) {
+  .photo-grid img {
+    width: 100% !important;
+    height: 256px !important; /* 16rem = 256px for mobile */
+    object-fit: cover !important;
+    object-position: center !important;
+    display: block !important;
+    max-width: 100% !important;
+  }
+  
+  .photo-grid > div {
+    height: 256px !important;
+    overflow: hidden !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .photo-grid img {
+    height: 256px !important;
+    object-fit: cover !important;
+  }
+}
+/* ============================================
+   END CSS THUMBNAIL FIX
+   ============================================ */
 </style>
