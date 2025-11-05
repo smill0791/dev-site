@@ -80,6 +80,57 @@ const onImageError = (photoId: string, imagePath: string) => {
 const onImageLoadStart = (photoId: string) => {
   imageLoadingStates.value.set(photoId, true)
 }
+
+// Swipe gesture handlers for mobile navigation
+const touchStartY = ref<number | null>(null)
+const touchStartX = ref<number | null>(null)
+const minSwipeDistance = 50 // Minimum distance in pixels to trigger a swipe
+
+const handleTouchStart = (e: TouchEvent) => {
+  touchStartY.value = e.touches[0].clientY
+  touchStartX.value = e.touches[0].clientX
+}
+
+const handleTouchMove = (e: TouchEvent) => {
+  // Prevent scrolling during swipe gestures
+  if (touchStartY.value !== null && touchStartX.value !== null) {
+    const currentY = e.touches[0].clientY
+    const currentX = e.touches[0].clientX
+    const deltaY = Math.abs(currentY - touchStartY.value)
+    const deltaX = Math.abs(currentX - touchStartX.value)
+    
+    // If vertical movement is more significant than horizontal, prevent default scrolling
+    if (deltaY > deltaX && deltaY > 10) {
+      e.preventDefault()
+    }
+  }
+}
+
+const handleTouchEnd = (e: TouchEvent) => {
+  if (touchStartY.value === null || touchStartX.value === null) return
+  
+  const touchEndY = e.changedTouches[0].clientY
+  const touchEndX = e.changedTouches[0].clientX
+  
+  const deltaY = touchEndY - touchStartY.value
+  const deltaX = touchEndX - touchStartX.value
+  
+  // Check if it's a vertical swipe (more vertical than horizontal)
+  if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipeDistance) {
+    // Swipe up = previous photo
+    if (deltaY < 0) {
+      navigatePhoto('prev')
+    }
+    // Swipe down = next photo
+    else if (deltaY > 0) {
+      navigatePhoto('next')
+    }
+  }
+  
+  // Reset touch positions
+  touchStartY.value = null
+  touchStartX.value = null
+}
 </script>
 
 <template>
@@ -217,6 +268,9 @@ const onImageLoadStart = (photoId: string) => {
         v-if="selectedPhoto"
         class="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
         @click.self="closeLightbox"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
       >
         <button
           @click="closeLightbox"
