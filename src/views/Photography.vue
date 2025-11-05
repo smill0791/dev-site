@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useHead } from '@vueuse/head'
 import { useRouter } from 'vue-router'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
-import { photos } from '@/data/photos'
+import { usePhotos } from '@/composables/usePhotos'
 import { ArrowLeft, Maximize2 } from 'lucide-vue-next'
 
 const router = useRouter()
+const { photos, loading, error, allTags, fetchPhotos, getPhotoUrl, loadMore } = usePhotos()
 const selectedTag = ref<string>('All')
 const selectedPhoto = ref<string | null>(null)
 
@@ -14,22 +15,27 @@ useHead({
   title: 'Photography - Sampson Miller'
 })
 
-const allTags = computed(() => {
-  const tags = new Set<string>()
-  photos.forEach(photo => {
-    photo.tags.forEach(tag => tags.add(tag))
-  })
-  return ['All', ...Array.from(tags).sort()]
+onMounted(() => {
+  fetchPhotos()
+})
+
+const tagList = computed(() => {
+  return ['All', ...allTags.value]
 })
 
 const filteredPhotos = computed(() => {
   if (selectedTag.value === 'All') {
-    return photos
+    return photos.value
   }
-  return photos.filter(photo => 
-    photo.tags.includes(selectedTag.value)
+  return photos.value.filter(photo => 
+    photo.tags?.includes(selectedTag.value)
   )
 })
+
+const handleTagChange = (tag: string) => {
+  selectedTag.value = tag
+  fetchPhotos(tag === 'All' ? undefined : { tags: [tag] })
+}
 
 const openLightbox = (photoId: string) => {
   selectedPhoto.value = photoId
@@ -42,7 +48,7 @@ const closeLightbox = () => {
 }
 
 const currentPhoto = computed(() => {
-  return photos.find(p => p.id === selectedPhoto.value)
+  return photos.value.find(p => p.id === selectedPhoto.value)
 })
 
 const navigatePhoto = (direction: 'prev' | 'next') => {
@@ -69,11 +75,24 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
 
       <SectionHeader title="Photography" subtitle="Capturing moments and exploring creative photography" />
       
-      <div class="flex flex-wrap justify-center gap-3 mb-12">
+      <!-- Error message -->
+      <div v-if="error" class="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">
+        <p class="font-medium">Error loading photos</p>
+        <p class="text-sm mt-1">{{ error }}</p>
+        <p class="text-sm mt-2">Please check your Supabase configuration in .env.local</p>
+      </div>
+
+      <!-- Loading state -->
+      <div v-if="loading && photos.length === 0" class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
+      </div>
+
+      <!-- Tag filters -->
+      <div v-if="!loading || photos.length > 0" class="flex flex-wrap justify-center gap-3 mb-12">
         <button
-          v-for="tag in allTags"
+          v-for="tag in tagList"
           :key="tag"
-          @click="selectedTag = tag"
+          @click="handleTagChange(tag)"
           :class="[
             'px-4 py-2 rounded-lg font-medium transition-colors',
             selectedTag === tag
@@ -85,7 +104,8 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
         </button>
       </div>
       
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <!-- Photo grid -->
+      <div v-if="!loading || photos.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div
           v-for="photo in filteredPhotos"
           :key="photo.id"
@@ -93,7 +113,7 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
           @click="openLightbox(photo.id)"
         >
           <img
-            :src="photo.image"
+            :src="getPhotoUrl(photo.thumbnail_path || photo.file_path)"
             :alt="photo.title"
             class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
             loading="lazy"
@@ -103,7 +123,7 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
           </div>
           <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
             <p class="text-white text-sm font-medium">{{ photo.title }}</p>
-            <div class="flex flex-wrap gap-1 mt-1">
+            <div v-if="photo.tags && photo.tags.length > 0" class="flex flex-wrap gap-1 mt-1">
               <span
                 v-for="tag in photo.tags"
                 :key="tag"
@@ -114,6 +134,21 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Empty state -->
+      <div v-if="!loading && photos.length === 0 && !error" class="text-center py-12">
+        <p class="text-gray-600 dark:text-gray-400 text-lg">No photos found</p>
+      </div>
+
+      <!-- Load more button -->
+      <div v-if="photos.length > 0 && !loading" class="text-center mt-8">
+        <button
+          @click="loadMore(selectedTag === 'All' ? undefined : { tags: [selectedTag] })"
+          class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+        >
+          Load More
+        </button>
       </div>
 
       <!-- Lightbox Modal -->
@@ -157,15 +192,18 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
         <div class="max-w-7xl max-h-full">
           <img
             v-if="currentPhoto"
-            :src="currentPhoto.image"
+            :src="getPhotoUrl(currentPhoto.file_path)"
             :alt="currentPhoto.title"
             class="max-w-full max-h-[90vh] object-contain"
           />
           <div class="mt-4 text-center text-white">
             <h3 class="text-xl font-semibold">{{ currentPhoto?.title }}</h3>
-            <div class="flex flex-wrap justify-center gap-2 mt-2">
+            <p v-if="currentPhoto?.description" class="mt-2 text-gray-300 text-sm">
+              {{ currentPhoto.description }}
+            </p>
+            <div v-if="currentPhoto?.tags && currentPhoto.tags.length > 0" class="flex flex-wrap justify-center gap-2 mt-2">
               <span
-                v-for="tag in currentPhoto?.tags"
+                v-for="tag in currentPhoto.tags"
                 :key="tag"
                 class="bg-white/20 text-white px-3 py-1 rounded-full text-sm"
               >

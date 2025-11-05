@@ -36,8 +36,43 @@ export interface Interest {
 
 export interface Photo {
   id: string
+  created_at: string
   title: string
-  image: string
-  tags: string[]
+  description?: string
+  file_path: string
+  thumbnail_path?: string
+  category?: string
+  tags?: string[]
+  location?: string
+  camera_model?: string
+  focal_length?: string
+  aperture?: string
+  shutter_speed?: string
+  iso?: string
+  taken_at?: string
+  is_featured: boolean
+  display_order?: number
+  views: number
+}
+
+export interface PhotoUpload {
+  title: string
+  description?: string
+  category?: string
+  tags?: string[]
+  location?: string
+  camera_model?: string
+  focal_length?: string
+  aperture?: string
+  shutter_speed?: string
+  iso?: string
+  taken_at?: string
+  is_featured?: boolean
+}
+
+export interface PhotoFilters {
+  category?: string
+  tags?: string[]
+  search?: string
 }
 
