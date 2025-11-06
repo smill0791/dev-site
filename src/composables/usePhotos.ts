@@ -3,13 +3,17 @@ import { supabase } from '@/lib/supabase'
 import type { Photo, PhotoFilters } from '@/types'
 import { PHOTO_TAGS } from '@/data/tags'
 
+// Shared state (singleton pattern) - moved outside function to share across component instances
+const photos = ref<Photo[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+const currentPage = ref(1)
+const pageSize = 12
+const hasMore = ref(true)
+const isPreloaded = ref(false)
+const preloadPromise = ref<Promise<void> | null>(null)
+
 export function usePhotos() {
-  const photos = ref<Photo[]>([])
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const currentPage = ref(1)
-  const pageSize = 12
-  const hasMore = ref(true)
 
   // Get photo URL from Supabase storage
   // Note: Supabase Storage doesn't support transform options in getPublicUrl
@@ -25,9 +29,11 @@ export function usePhotos() {
     return data.publicUrl
   }
 
-  // Fetch photos with optional filters
-  const fetchPhotos = async (filters?: PhotoFilters, page = 1) => {
-    loading.value = true
+  // Internal fetch function (used by both fetchPhotos and preloadPhotos)
+  const _fetchPhotosInternal = async (filters?: PhotoFilters, page = 1, silent = false) => {
+    if (!silent) {
+      loading.value = true
+    }
     error.value = null
 
     // Check if Supabase is configured
@@ -36,7 +42,9 @@ export function usePhotos() {
     
     if (!supabaseUrl || !supabaseAnonKey) {
       error.value = 'Supabase environment variables are not configured. Please check your deployment settings.'
-      loading.value = false
+      if (!silent) {
+        loading.value = false
+      }
       console.error('Supabase not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to environment variables.')
       return
     }
@@ -80,8 +88,37 @@ export function usePhotos() {
       console.error('Error fetching photos:', e)
       photos.value = []
     } finally {
-      loading.value = false
+      if (!silent) {
+        loading.value = false
+      }
     }
+  }
+
+  // Fetch photos with optional filters (normal fetch with loading state)
+  const fetchPhotos = async (filters?: PhotoFilters, page = 1) => {
+    await _fetchPhotosInternal(filters, page, false)
+  }
+
+  // Preload photos silently in the background (no loading state)
+  const preloadPhotos = async () => {
+    // If already preloaded or preload in progress, return existing promise
+    if (isPreloaded.value) {
+      return Promise.resolve()
+    }
+    
+    if (preloadPromise.value) {
+      return preloadPromise.value
+    }
+
+    // Create preload promise
+    preloadPromise.value = _fetchPhotosInternal(undefined, 1, true).then(() => {
+      isPreloaded.value = true
+    }).catch(() => {
+      // Reset promise on error so it can be retried
+      preloadPromise.value = null
+    })
+
+    return preloadPromise.value
   }
 
   // Get single photo by ID
@@ -163,8 +200,10 @@ export function usePhotos() {
     categories,
     allTags,
     fetchPhotos,
+    preloadPhotos,
     getPhoto,
     getPhotoUrl,
-    loadMore
+    loadMore,
+    isPreloaded
   }
 }

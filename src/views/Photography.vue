@@ -9,7 +9,7 @@ import { ArrowLeft, Maximize2 } from 'lucide-vue-next'
 import type { Photo } from '@/types'
 
 const router = useRouter()
-const { photos, loading, error, allTags, fetchPhotos, getPhotoUrl, loadMore } = usePhotos()
+const { photos, loading, error, allTags, fetchPhotos, getPhotoUrl, loadMore, isPreloaded } = usePhotos()
 const selectedTag = ref<string>('All')
 const selectedPhoto = ref<string | null>(null)
 
@@ -45,7 +45,11 @@ useHead({
 })
 
 onMounted(() => {
-  fetchPhotos()
+  // If photos are already preloaded, use existing data
+  // Otherwise fetch normally
+  if (!isPreloaded.value || photos.value.length === 0) {
+    fetchPhotos()
+  }
 })
 
 const tagList = computed(() => {
