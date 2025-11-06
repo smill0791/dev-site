@@ -89,6 +89,60 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
     selectedPhoto.value = filteredPhotos.value[currentIndex + 1].id
   }
 }
+
+// Swipe gesture handling for mobile
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const touchEndX = ref(0)
+const touchEndY = ref(0)
+const minSwipeDistance = 50 // Minimum distance in pixels to trigger swipe
+
+const handleTouchStart = (event: TouchEvent) => {
+  // Only handle touches on the image container, not buttons
+  const target = event.target as HTMLElement
+  if (target.closest('button')) return
+  
+  touchStartX.value = event.touches[0].clientX
+  touchStartY.value = event.touches[0].clientY
+}
+
+const handleTouchEnd = (event: TouchEvent) => {
+  // Only handle touches on the image container, not buttons
+  const target = event.target as HTMLElement
+  if (target.closest('button')) {
+    touchStartX.value = 0
+    touchStartY.value = 0
+    return
+  }
+  
+  if (!touchStartX.value || !touchStartY.value) return
+  
+  touchEndX.value = event.changedTouches[0].clientX
+  touchEndY.value = event.changedTouches[0].clientY
+  
+  const deltaX = touchEndX.value - touchStartX.value
+  const deltaY = touchEndY.value - touchStartY.value
+  
+  // Check if horizontal swipe is more significant than vertical swipe
+  // This prevents accidental navigation when scrolling vertically
+  // Require at least 2:1 ratio of horizontal to vertical movement
+  if (Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > minSwipeDistance) {
+    // Prevent default to avoid any scrolling
+    event.preventDefault()
+    
+    if (deltaX > 0) {
+      // Swipe right - go to previous photo
+      navigatePhoto('prev')
+    } else {
+      // Swipe left - go to next photo
+      navigatePhoto('next')
+    }
+  }
+  
+  // Reset touch positions
+  touchStartX.value = 0
+  touchStartY.value = 0
+}
 </script>
 
 <template>
@@ -228,12 +282,17 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
           </svg>
         </button>
 
-        <div class="max-w-7xl max-h-full">
+        <div 
+          class="max-w-7xl max-h-full touch-none"
+          @touchstart="handleTouchStart"
+          @touchend="handleTouchEnd"
+        >
           <img
             v-if="currentPhoto"
             :src="getPhotoUrl(currentPhoto.file_path)"
             :alt="currentPhoto.title"
-            class="max-w-full max-h-[90vh] object-contain"
+            class="max-w-full max-h-[90vh] object-contain select-none"
+            draggable="false"
           />
           <div class="mt-4 text-center text-white">
             <h3 class="text-xl font-semibold">{{ currentPhoto?.title }}</h3>
@@ -258,4 +317,18 @@ const navigatePhoto = (direction: 'prev' | 'next') => {
 
 <style scoped>
 /* Prevent body scroll when lightbox is open */
+
+/* Improve touch handling for swipe gestures */
+.touch-none {
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* Prevent image dragging on mobile */
+img {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 </style>
