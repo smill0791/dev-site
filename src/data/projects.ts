@@ -24,8 +24,8 @@ export const projects: Project[] = [
     id: 'project-3',
     title: 'Dev Site',
     description: 'What you\'re on now! A modern, responsive developer portfolio website.',
-    longDescription: 'A modern, responsive developer portfolio website built with Vue 3, TypeScript and Tailwind CSS.',
-    technologies: ['Vue', 'TypeScript', 'Tailwind CSS'],
+    longDescription: 'A modern, responsive developer portfolio website built with Vue 3, TypeScript and Tailwind CSS. Added photo gallery powered by Supabase for backend storage.',
+    technologies: ['Vue', 'TypeScript', 'Tailwind CSS','PostgreSQL', 'Supabase'],
     featured: true,
     liveUrl: 'https://sampson-dev.vercel.app/',
     githubUrl: 'https://github.com/smill0791/dev-site'

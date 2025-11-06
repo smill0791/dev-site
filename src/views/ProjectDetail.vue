@@ -68,7 +68,7 @@ if (!project.value) {
           >
             <Button size="lg">
               <ExternalLink class="w-5 h-5 mr-2 inline" />
-              View Live Demo
+              Demo
             </Button>
           </a>
           <a
