@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Moon, Sun, Menu, X } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 
+const router = useRouter()
+const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
 const isMobileMenuOpen = ref(false)
 
@@ -17,9 +20,25 @@ const navItems = [
 
 const scrollToSection = (href: string) => {
   const id = href.replace('#', '')
-  const element = document.getElementById(id)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
+  
+  // If we're not on the home page, navigate to home first
+  if (route.path !== '/') {
+    router.push('/').then(() => {
+      // Wait for the page to render, then scroll
+      setTimeout(() => {
+        const element = document.getElementById(id)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }
+        isMobileMenuOpen.value = false
+      }, 100)
+    })
+  } else {
+    // Already on home page, just scroll
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
     isMobileMenuOpen.value = false
   }
 }

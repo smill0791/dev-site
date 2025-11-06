@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useRouter, useRoute } from 'vue-router'
 import Button from '@/components/ui/Button.vue'
 import { Github, Linkedin, Mail, Download } from 'lucide-vue-next'
+
+const router = useRouter()
+const route = useRoute()
 
 const socialLinks = [
   { name: 'GitHub', icon: Github, url: 'https://github.com/smill0791' },
@@ -9,9 +13,23 @@ const socialLinks = [
 ]
 
 const scrollToSection = (id: string) => {
-  const element = document.getElementById(id)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
+  // If we're not on the home page, navigate to home first
+  if (route.path !== '/') {
+    router.push('/').then(() => {
+      // Wait for the page to render, then scroll
+      setTimeout(() => {
+        const element = document.getElementById(id)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100)
+    })
+  } else {
+    // Already on home page, just scroll
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 }
 </script>
