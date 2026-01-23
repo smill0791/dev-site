@@ -30,7 +30,11 @@ dist-ssr
 
 .vercel
 .env*.local
+.env.local copy
+
+# Documentation files (personal/career related)
 SUPABASE_SETUP.md
 VERCEL_DEPLOYMENT.md
 VERCEL_PREVIEW_DEPLOYMENT.md
-.env.local copy
+RESUME_DRAFT.md
+PORTFOLIO_STRATEGY.md
